@@ -181,28 +181,44 @@ def clear_all_ai_summaries(conn: sqlite3.Connection) -> int:
     return int(cur.rowcount)
 
 
+SUMMARY_PENDING_PLACEHOLDER = "_Pending summary…_"
+
+
+def needs_ai_summary(summary: str | None) -> bool:
+    """True when the row still needs Bedrock (matches UI + SQL)."""
+    if summary is None:
+        return True
+    text = str(summary).strip()
+    return text == "" or text == SUMMARY_PENDING_PLACEHOLDER
+
+
 def count_articles_needing_summary(conn: sqlite3.Connection) -> int:
     """How many rows still need a Bedrock summary (no limit)."""
     cur = conn.execute(
         """
         SELECT COUNT(*) FROM articles
-        WHERE summary IS NULL OR TRIM(summary) = ''
-        """
+        WHERE summary IS NULL
+           OR TRIM(summary) = ''
+           OR TRIM(summary) = ?
+        """,
+        (SUMMARY_PENDING_PLACEHOLDER,),
     )
     return int(cur.fetchone()[0])
 
 
 def article_ids_needing_summary(conn: sqlite3.Connection, limit: int) -> list[sqlite3.Row]:
-    """Rows where we still need an LLM summary (summary IS NULL or empty)."""
+    """Rows where we still need an LLM summary."""
     cur = conn.execute(
         """
         SELECT id, title, url, ticker_category
         FROM articles
-        WHERE summary IS NULL OR TRIM(summary) = ''
+        WHERE summary IS NULL
+           OR TRIM(summary) = ''
+           OR TRIM(summary) = ?
         ORDER BY (published_at IS NULL), published_at DESC, id DESC
         LIMIT ?
         """,
-        (limit,),
+        (SUMMARY_PENDING_PLACEHOLDER, limit),
     )
     return list(cur.fetchall())
 

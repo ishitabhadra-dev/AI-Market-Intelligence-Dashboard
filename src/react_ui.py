@@ -106,16 +106,21 @@ def status_bar(
     pending: int,
     vector_count: int,
     article_count: int,
+    bedrock_label: str | None = None,
+    bedrock_kind: str | None = None,
     key: str = "mi_status_bar",
 ) -> None:
-    _call(
-        "status_bar",
-        key=key,
-        bedrock=bedrock,
-        pending=pending,
-        vectorCount=vector_count,
-        articleCount=article_count,
-    )
+    payload: dict[str, Any] = {
+        "bedrock": bedrock,
+        "pending": pending,
+        "vectorCount": vector_count,
+        "articleCount": article_count,
+    }
+    if bedrock_label:
+        payload["bedrockLabel"] = bedrock_label
+    if bedrock_kind:
+        payload["bedrockKind"] = bedrock_kind
+    _call("status_bar", key=key, **payload)
 
 
 def metrics_grid(
@@ -142,8 +147,20 @@ def dashboard_panel(
     )
 
 
-def article_feed(articles: list[dict[str, Any]], *, key: str) -> None:
-    _call("article_feed", key=key, articles=articles)
+def article_feed(
+    articles: list[dict[str, Any]],
+    *,
+    key: str,
+    bedrock_configured: bool = False,
+    summarize_failed: bool = False,
+) -> None:
+    _call(
+        "article_feed",
+        key=key,
+        articles=articles,
+        bedrockConfigured=bedrock_configured,
+        summarizeFailed=summarize_failed,
+    )
 
 
 def rag_results(

@@ -30,6 +30,8 @@ export interface ChatMessage {
 export interface ComponentArgs {
   view: string;
   bedrock?: boolean;
+  bedrockLabel?: string;
+  bedrockKind?: string;
   pending?: number;
   vectorCount?: number;
   articleCount?: number;
@@ -46,4 +48,6 @@ export interface ComponentArgs {
   placeholder?: string;
   examples?: string[];
   height?: number;
+  bedrockConfigured?: boolean;
+  summarizeFailed?: boolean;
 }

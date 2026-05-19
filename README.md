@@ -28,6 +28,22 @@ A beginner-friendly **Streamlit** app: ingest financial news into **SQLite**, su
 
 **Phase 3 plan:** migrate vectors to **Amazon OpenSearch Serverless**; optional S3, DynamoDB/RDS, Lambda/ECS later.
 
+## Architecture diagram
+
+AWS Architecture Icons (official stencils via [diagrams](https://diagrams.mingrammer.com/)):
+
+![AWS architecture](docs/aws-architecture-diagram.png)
+
+Regenerate (requires `graphviz` + `diagrams`):
+
+```bash
+brew install graphviz
+python3 -m venv .venv-diagram && .venv-diagram/bin/pip install diagrams
+.venv-diagram/bin/python docs/generate_aws_stencil_diagram.py
+```
+
+Fallback (matplotlib, no Graphviz): `python docs/generate_aws_architecture_diagram.py`
+
 ## Project layout
 
 ```text

@@ -212,10 +212,35 @@ def badge(label: str, kind: str = "neutral") -> str:
     )
 
 
-def render_status_pills(*, bedrock: bool, pending: int, vector_count: int, article_count: int) -> None:
+def _bedrock_status_label(*, bedrock: bool, bedrock_creds: bool, bedrock_settings: bool) -> tuple[str, str]:
+    if bedrock:
+        return "Bedrock ready", "positive"
+    if bedrock_settings and not bedrock_creds:
+        return "Demo mode (add AWS keys)", "pending"
+    if bedrock_creds and bedrock_settings:
+        return "Bedrock misconfigured", "negative"
+    return "Bedrock not configured", "negative"
+
+
+def render_status_pills(
+    *,
+    bedrock: bool,
+    pending: int,
+    vector_count: int,
+    article_count: int,
+    bedrock_creds: bool = False,
+    bedrock_settings: bool = False,
+) -> None:
+    br_label, br_kind = _bedrock_status_label(
+        bedrock=bedrock,
+        bedrock_creds=bedrock_creds,
+        bedrock_settings=bedrock_settings,
+    )
     if react_ui.is_react_available():
         react_ui.status_bar(
             bedrock=bedrock,
+            bedrock_label=br_label,
+            bedrock_kind=br_kind,
             pending=pending,
             vector_count=vector_count,
             article_count=article_count,
@@ -223,7 +248,7 @@ def render_status_pills(*, bedrock: bool, pending: int, vector_count: int, artic
         )
         return
     pills = [
-        badge("Bedrock connected" if bedrock else "Bedrock not configured", "positive" if bedrock else "negative"),
+        badge(br_label, br_kind),
         badge(f"{article_count} articles", "neutral"),
         badge(f"{pending} pending AI" if pending else "All summarized", "pending" if pending else "positive"),
         badge(f"{vector_count} in vector DB", "neutral"),
@@ -298,13 +323,24 @@ def dashboard_panel(sentiment: dict[str, int], topics: list[tuple[str, int]], *,
             st.caption("Ingest articles and run AI to populate topics.")
 
 
-def article_feed(rows: list[dict[str, Any]], *, key: str) -> None:
+def article_feed(
+    rows: list[dict[str, Any]],
+    *,
+    key: str,
+    bedrock_configured: bool = False,
+    summarize_failed: bool = False,
+) -> None:
     """Expandable article cards with instant client-side filter (React)."""
     if react_ui.is_react_available():
-        react_ui.article_feed(react_ui.articles_from_rows(rows), key=key)
+        react_ui.article_feed(
+            react_ui.articles_from_rows(rows),
+            key=key,
+            bedrock_configured=bedrock_configured,
+            summarize_failed=summarize_failed,
+        )
         return
     for row in rows:
-        article_card(row)
+        article_card(row, summarize_failed=summarize_failed)
 
 
 def rag_results_panel(rows: list[dict[str, Any]], *, title: str = "Results", key: str) -> None:
@@ -335,7 +371,7 @@ def _sentiment_kind(sentiment: str, summary: str) -> str:
     return sentiment.lower() if sentiment in ("positive", "negative", "neutral") else "n/a"
 
 
-def article_card(row: dict[str, Any]) -> None:
+def article_card(row: dict[str, Any], *, summarize_failed: bool = False) -> None:
     title = html.escape(str(row.get("title", "Untitled")))
     source = html.escape(str(row.get("source", "—")))
     pub = html.escape(_format_pub(row.get("published_at")))
@@ -363,7 +399,13 @@ def article_card(row: dict[str, Any]) -> None:
             st.markdown(f"[Read source article]({url})")
         st.markdown('<p class="mi-label">AI Summary</p>', unsafe_allow_html=True)
         if is_pending:
-            st.warning("Pending — use **Summarize ALL pending** in the sidebar.")
+            if summarize_failed:
+                st.error(
+                    "Still pending — Bedrock did not save summaries. "
+                    "Use **Test Bedrock connection** in the sidebar and fix Secrets / model access."
+                )
+            else:
+                st.warning("Pending — use **Summarize ALL pending** in the sidebar.")
         else:
             st.markdown(summary)
         if why:

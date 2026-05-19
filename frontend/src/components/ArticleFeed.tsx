@@ -6,6 +6,8 @@ interface Props {
   articles?: Article[];
   /** Hide search toolbar when nested inside RAG results */
   embedded?: boolean;
+  bedrockConfigured?: boolean;
+  summarizeFailed?: boolean;
 }
 
 function sentimentKind(sentiment: string, summary: string): string {
@@ -15,7 +17,15 @@ function sentimentKind(sentiment: string, summary: string): string {
   return "neutral";
 }
 
-function ArticleCard({ article }: { article: Article }) {
+function ArticleCard({
+  article,
+  bedrockConfigured = false,
+  summarizeFailed = false,
+}: {
+  article: Article;
+  bedrockConfigured?: boolean;
+  summarizeFailed?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pending =
     !article.summary || article.summary === "_Pending summary…_";
@@ -54,7 +64,23 @@ function ArticleCard({ article }: { article: Article }) {
           <p className="mi-label">AI Summary</p>
           {pending ? (
             <p className="mi-pending">
-              Pending — use <strong>Summarize ALL pending</strong> in the sidebar.
+              {summarizeFailed ? (
+                <>
+                  Still pending — Bedrock did not save summaries. Use{" "}
+                  <strong>Test Bedrock connection</strong> in the sidebar (Secrets,
+                  IAM, model access).
+                </>
+              ) : bedrockConfigured ? (
+                <>
+                  Not summarized yet — click <strong>Summarize ALL pending</strong>{" "}
+                  in the sidebar.
+                </>
+              ) : (
+                <>
+                  Pending — configure Bedrock in Secrets, then{" "}
+                  <strong>Summarize ALL pending</strong>.
+                </>
+              )}
             </p>
           ) : (
             <div className="mi-summary">{article.summary}</div>
@@ -82,7 +108,12 @@ function ArticleCard({ article }: { article: Article }) {
 const SCROLL_AREA_PX = 480;
 const FRAME_HEIGHT_PX = 560;
 
-export function ArticleFeed({ articles = [], embedded = false }: Props) {
+export function ArticleFeed({
+  articles = [],
+  embedded = false,
+  bedrockConfigured = false,
+  summarizeFailed = false,
+}: Props) {
   const [query, setQuery] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState("all");
 
@@ -144,7 +175,12 @@ export function ArticleFeed({ articles = [], embedded = false }: Props) {
           <p className="mi-empty">No articles match your filters.</p>
         ) : (
           filtered.map((a, i) => (
-            <ArticleCard key={a.id ?? `${a.title}-${i}`} article={a} />
+            <ArticleCard
+              key={a.id ?? `${a.title}-${i}`}
+              article={a}
+              bedrockConfigured={bedrockConfigured}
+              summarizeFailed={summarizeFailed}
+            />
           ))
         )}
       </div>

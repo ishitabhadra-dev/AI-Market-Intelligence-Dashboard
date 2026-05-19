@@ -30,6 +30,7 @@ Do not include markdown fences or commentary outside JSON."""
 
 
 def bedrock_configured() -> bool:
+    """Live Bedrock summarization (requires credentials + model id)."""
     return bedrock_chat_configured()
 
 

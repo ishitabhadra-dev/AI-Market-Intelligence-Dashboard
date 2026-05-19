@@ -26,6 +26,8 @@ class Root extends React.PureComponent<ComponentProps> {
         return (
           <StatusBar
             bedrock={args.bedrock}
+            bedrockLabel={args.bedrockLabel}
+            bedrockKind={args.bedrockKind}
             pending={args.pending}
             vectorCount={args.vectorCount}
             articleCount={args.articleCount}
@@ -36,7 +38,14 @@ class Root extends React.PureComponent<ComponentProps> {
       case "dashboard":
         return <DashboardPanel sentiment={args.sentiment} topics={args.topics} />;
       case "article_feed":
-        return <ArticleFeed articles={args.articles} embedded={Boolean(args.embedded)} />;
+        return (
+          <ArticleFeed
+            articles={args.articles}
+            embedded={Boolean(args.embedded)}
+            bedrockConfigured={Boolean(args.bedrockConfigured)}
+            summarizeFailed={Boolean(args.summarizeFailed)}
+          />
+        );
       case "rag_results":
         return <RagResults articles={args.articles} title={args.placeholder} />;
       case "market_agent":
