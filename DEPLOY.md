@@ -8,7 +8,7 @@ Production deployment options for the **AI Market Intelligence Dashboard**.
 |-------------|--------|
 | **AWS account** | Bedrock enabled in your region |
 | **IAM** | `bedrock:InvokeModel` on Titan + your chat model |
-| **Models** | `amazon.titan-embed-text-v2:0` + inference profile (e.g. `us.anthropic.claude-sonnet-4-6`) |
+| **Models** | `amazon.titan-embed-text-v2:0` + `anthropic.claude-haiku-4-5-20251001-v1:0` |
 | **News APIs** | Optional — Yahoo RSS works without keys |
 
 ---
@@ -109,7 +109,7 @@ Listens on `0.0.0.0:8501` (set `PORT` to change).
 AWS_REGION = "us-east-1"
 AWS_ACCESS_KEY_ID = "AKIA..."
 AWS_SECRET_ACCESS_KEY = "..."
-BEDROCK_CHAT_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
+BEDROCK_CHAT_MODEL_ID = "anthropic.claude-haiku-4-5-20251001-v1:0"
 BEDROCK_EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v2:0"
 VECTOR_DB_PATH = "data/vector_db"
 ```

@@ -91,7 +91,7 @@ Your user/role needs at least:
       "Action": ["bedrock:InvokeModel"],
       "Resource": [
         "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v2:0",
-        "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0"
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
       ]
     }
   ]
@@ -110,7 +110,7 @@ cp .env.example .env
 | -------- | ------- |
 | `AWS_REGION` | e.g. `us-east-1` |
 | `BEDROCK_EMBEDDING_MODEL_ID` | `amazon.titan-embed-text-v2:0` |
-| `BEDROCK_CHAT_MODEL_ID` | Inference profile, e.g. `us.anthropic.claude-3-5-haiku-20241022-v1:0` |
+| `BEDROCK_CHAT_MODEL_ID` | e.g. `anthropic.claude-haiku-4-5-20251001-v1:0` |
 | `VECTOR_DB_PATH` | Default `data/vector_db` |
 
 ## Run
@@ -208,7 +208,7 @@ Every answer lists sources so you can verify claims against real headlines.
 | AWS credentials not found | Run `aws configure` or set `AWS_PROFILE` |
 | `AccessDeniedException` | Enable model access + `bedrock:InvokeModel` IAM |
 | `ValidationException` on modelId | Use exact model ID for your region |
-| `Legacy` / ResourceNotFound on old Claude | Use `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `amazon.nova-lite-v1:0` |
+| `Legacy` / ResourceNotFound on old Claude | Use `anthropic.claude-haiku-4-5-20251001-v1:0` |
 | `inference profile` ValidationException | Use profile id from Model catalog (starts with `us.`, `eu.`, or `apac.`) |
 | Empty vector DB | Sync after ingesting + summarizing articles |
 | Weak RAG answers | Add more articles; run Bedrock summaries first |

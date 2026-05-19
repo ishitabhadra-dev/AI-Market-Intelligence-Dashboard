@@ -41,7 +41,7 @@ Edit `.env` — minimum for Bedrock:
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
-BEDROCK_CHAT_MODEL_ID=us.anthropic.claude-sonnet-4-6
+BEDROCK_CHAT_MODEL_ID=anthropic.claude-haiku-4-5-20251001-v1:0
 BEDROCK_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
 ```
 

@@ -487,11 +487,11 @@ def main() -> None:
                 st.caption(str(_probe.get("summary", ""))[:200])
             else:
                 st.error(probe_err or "Bedrock call failed. Check Secrets and model access.")
-                if probe_err and "sonnet-4-6" in (config.BEDROCK_CHAT_MODEL_ID or ""):
+                if probe_err and "Legacy" in (probe_err or ""):
                     st.info(
-                        "Try `BEDROCK_CHAT_MODEL_ID = "
-                        '"us.anthropic.claude-3-5-haiku-20241022-v1:0"` in Secrets '
-                        "(must be enabled in Bedrock → Model access)."
+                        'Update Secrets: `BEDROCK_CHAT_MODEL_ID = '
+                        '"anthropic.claude-haiku-4-5-20251001-v1:0"`, '
+                        "then enable in Bedrock → Model access."
                     )
 
         if st.button("Summarize ALL pending", use_container_width=True):

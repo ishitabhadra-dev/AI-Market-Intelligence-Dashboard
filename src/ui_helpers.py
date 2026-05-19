@@ -460,7 +460,7 @@ def render_help_page() -> None:
     st.markdown("### Prerequisites")
     st.markdown(
         """
-        - `.env` with `AWS_REGION`, `BEDROCK_CHAT_MODEL_ID` (e.g. `us.anthropic.claude-sonnet-4-6`), `BEDROCK_EMBEDDING_MODEL_ID`
+        - `.env` with `AWS_REGION`, `BEDROCK_CHAT_MODEL_ID` (`anthropic.claude-haiku-4-5-20251001-v1:0`), `BEDROCK_EMBEDDING_MODEL_ID`
         - AWS credentials via `aws configure` or keys in `.env`
         - IAM: `bedrock:InvokeModel` (e.g. `AmazonBedrockFullAccess`)
         - Run: `pip install -r requirements.txt`

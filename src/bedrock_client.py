@@ -195,8 +195,10 @@ def _invoke(model_id: str, body: dict[str, Any]) -> dict[str, Any]:
         hint = ""
         if code == "ResourceNotFoundException" and "Legacy" in msg:
             hint = (
-                " Update BEDROCK_CHAT_MODEL_ID to an active model, e.g. "
-                "us.anthropic.claude-3-5-haiku-20241022-v1:0 or amazon.nova-lite-v1:0"
+                " Set BEDROCK_CHAT_MODEL_ID in Secrets to an active model from "
+                "Bedrock → Model catalog, e.g. "
+                "anthropic.claude-haiku-4-5-20251001-v1:0 or amazon.nova-lite-v1:0 "
+                "(enable it under Model access first)."
             )
         elif code == "ValidationException" and "inference profile" in msg.lower():
             hint = (

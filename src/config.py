@@ -26,6 +26,9 @@ def _coerce_secret_value(value: object) -> str | None:
         return None
     if isinstance(value, (str, int, float, bool)):
         text = str(value).strip()
+        # Common paste mistakes in Streamlit Secrets UI
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+            text = text[1:-1].strip()
         return text or None
     return None
 
@@ -98,7 +101,7 @@ def reload_from_env() -> None:
     BEDROCK_CHAT_MODEL_ID = (
         _get_env("BEDROCK_CHAT_MODEL_ID")
         or _get_env("BEDROCK_MODEL_ID")
-        or "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+        or "anthropic.claude-haiku-4-5-20251001-v1:0"
     )
     BEDROCK_MODEL_ID = BEDROCK_CHAT_MODEL_ID
     BEDROCK_EMBEDDING_MODEL_ID = (
