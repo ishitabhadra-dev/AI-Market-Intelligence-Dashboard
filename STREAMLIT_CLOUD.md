@@ -39,7 +39,7 @@ Do **not** commit `.env` (secrets stay in Streamlit UI).
 1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
 2. Click **Create app**.
 3. Choose your repository, branch `main`, main file **`app.py`**.
-4. Open **Advanced settings** → Python **3.11** (recommended).
+4. Python **3.11** is set via `.python-version` in the repo (required for ChromaDB).
 
 ---
 
@@ -106,6 +106,7 @@ For durable data long-term, use AWS (RDS, OpenSearch) in a later phase.
 | Issue | Fix |
 |-------|-----|
 | `Unable to locate package` in logs | Remove `packages.txt` or leave it **empty** (no `#` comments) |
+| `Descriptors cannot be created` / protobuf | Use `.python-version` = `3.11` and pinned `requirements.txt` (push latest) |
 | App crashes on start | Check **Logs** in Streamlit Cloud; verify `requirements.txt` |
 | React UI missing / fallback widgets | Commit `frontend/build/` to GitHub |
 | Bedrock `AccessDenied` | IAM policy + correct model IDs in Secrets |

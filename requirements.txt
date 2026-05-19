@@ -1,6 +1,11 @@
+# Pin Python via .python-version (3.11) on Streamlit Cloud — avoid 3.14 + protobuf 7.x
 streamlit>=1.28.0,<2.0
 requests>=2.31.0,<3.0
 pandas>=2.0.0,<3.0
 python-dotenv>=1.0.0,<2.0
 boto3>=1.34.40,<2.0
-chromadb>=0.5.0,<1.0
+
+# ChromaDB stack — protobuf 7 breaks opentelemetry imports on Cloud
+protobuf>=4.25.0,<6.0.0
+grpcio>=1.62.0,<2.0.0
+chromadb>=0.5.4,<0.6.0
