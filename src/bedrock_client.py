@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 import boto3
@@ -65,19 +66,65 @@ def get_bedrock_runtime_client():
         ) from exc
 
 
+def aws_credentials_available() -> bool:
+    """True when boto3 can resolve AWS credentials (env, profile, or instance role)."""
+    profile = (config.AWS_PROFILE or "").strip()
+    session_kwargs: dict[str, Any] = {}
+    if profile:
+        session_kwargs["profile_name"] = profile
+    try:
+        session = boto3.Session(**session_kwargs)
+        creds = session.get_credentials()
+        if creds is None:
+            return False
+        frozen = creds.get_frozen_credentials()
+        return bool(frozen and frozen.access_key)
+    except (ProfileNotFound, BotoCoreError):
+        return False
+
+
 def bedrock_chat_configured() -> bool:
-    """True when region + chat model id are set (credentials checked at call time)."""
-    return bool(config.AWS_REGION and config.BEDROCK_CHAT_MODEL_ID)
+    """True when region, model id, and AWS credentials are available for live calls."""
+    return bool(
+        config.AWS_REGION
+        and config.BEDROCK_CHAT_MODEL_ID
+        and aws_credentials_available()
+    )
 
 
 def bedrock_embeddings_configured() -> bool:
-    """True when region + Titan embedding model id are set."""
-    return bool(config.AWS_REGION and config.BEDROCK_EMBEDDING_MODEL_ID)
+    """True when region, embedding model id, and credentials are available."""
+    return bool(
+        config.AWS_REGION
+        and config.BEDROCK_EMBEDDING_MODEL_ID
+        and aws_credentials_available()
+    )
 
 
 def aws_configured() -> bool:
-    """Phase 2 UI helper — chat + embeddings model ids and region present."""
+    """Phase 2 UI helper — chat + embeddings ready for live Bedrock calls."""
     return bedrock_chat_configured() and bedrock_embeddings_configured()
+
+
+def bedrock_settings_present() -> bool:
+    """Model ids + region set (even if credentials are missing)."""
+    return bool(config.AWS_REGION and config.BEDROCK_CHAT_MODEL_ID)
+
+
+def bedrock_connection_diagnostics() -> dict[str, str]:
+    """Human-readable checks for the sidebar (no secret values)."""
+    key_id = (os.getenv("AWS_ACCESS_KEY_ID") or "").strip()
+    secret = (os.getenv("AWS_SECRET_ACCESS_KEY") or "").strip()
+    return {
+        "region": config.AWS_REGION or "—",
+        "chat_model": config.BEDROCK_CHAT_MODEL_ID or "—",
+        "embed_model": config.BEDROCK_EMBEDDING_MODEL_ID or "—",
+        "access_key_set": "yes" if key_id else "no",
+        "access_key_preview": f"{key_id[:4]}…{key_id[-4:]}" if len(key_id) >= 8 else ("set" if key_id else "missing"),
+        "secret_key_set": "yes" if secret else "no",
+        "credentials_boto3": "yes" if aws_credentials_available() else "no",
+        "chat_ready": "yes" if bedrock_chat_configured() else "no",
+    }
 
 
 def _geo_prefix_for_region(region: str) -> str:

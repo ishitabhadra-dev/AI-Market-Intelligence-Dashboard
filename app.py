@@ -36,7 +36,12 @@ import pandas as pd
 from src import analytics
 from src import database as db
 from src import embeddings
-from src.bedrock_client import aws_configured
+from src.bedrock_client import (
+    aws_configured,
+    aws_credentials_available,
+    bedrock_connection_diagnostics,
+    bedrock_settings_present,
+)
 from src import news_ingestion
 from src import rag_pipeline
 from src import summarizer
@@ -70,7 +75,44 @@ def _ingest_latest(conn, max_items: int) -> tuple[int, str]:
     return new_count, label
 
 
-def _summarize_pending(conn, batch_limit: int) -> dict[str, int | list[str]]:
+def _persist_summarize_feedback(stats: dict, remaining: int) -> None:
+    """Keep summarize results visible after st.rerun (Streamlit clears widgets on rerun)."""
+    st.session_state["summarize_feedback"] = {
+        "stats": stats,
+        "remaining": remaining,
+    }
+
+
+def _render_summarize_feedback() -> None:
+    fb = st.session_state.get("summarize_feedback")
+    if not fb:
+        return
+    stats = fb.get("stats") or {}
+    remaining = int(fb.get("remaining") or 0)
+    live = int(stats.get("live") or 0)
+    failed = int(stats.get("failed") or 0)
+    demo = int(stats.get("demo") or 0)
+    msg = (
+        f"Last run: {live} live, {demo} demo, {failed} failed. "
+        f"{remaining} still pending."
+    )
+    if failed > 0 and live == 0 and demo == 0:
+        st.error(msg)
+    elif failed > 0:
+        st.warning(msg)
+    else:
+        st.success(msg)
+    for err_msg in stats.get("errors") or []:
+        st.error(err_msg)
+
+
+def _summarize_pending(
+    conn,
+    batch_limit: int,
+    *,
+    progress_slot=None,
+) -> dict[str, int | list[str]]:
+    refresh_streamlit_secrets()
     pending = db.article_ids_needing_summary(conn, limit=batch_limit)
     stats: dict[str, int | list[str]] = {
         "processed": 0,
@@ -79,7 +121,13 @@ def _summarize_pending(conn, batch_limit: int) -> dict[str, int | list[str]]:
         "failed": 0,
         "errors": [],
     }
-    for row in pending:
+    total = len(pending)
+    for idx, row in enumerate(pending, start=1):
+        if progress_slot is not None:
+            progress_slot.progress(
+                idx / max(total, 1),
+                text=f"Summarizing {idx}/{total}…",
+            )
         status = summarizer.summarize_and_cache(
             conn,
             int(row["id"]),
@@ -352,12 +400,22 @@ def main() -> None:
     pending_total = db.count_articles_needing_summary(conn)
     chroma_n = vector_store.count_embedded_articles()
     bedrock_ok = aws_configured()
+    has_aws_creds = aws_credentials_available()
 
     # --- Sidebar ---
     with st.sidebar:
         ui_helpers.render_quick_start_sidebar()
         st.divider()
         st.markdown("##### Data & AI")
+        _render_summarize_feedback()
+        if bedrock_settings_present() and not has_aws_creds:
+            st.warning(
+                "AWS credentials missing — summaries will use **demo text** until you add "
+                "`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in Streamlit Secrets (or run "
+                "`aws configure` locally)."
+            )
+        elif has_aws_creds and not bedrock_ok:
+            st.warning("Set `BEDROCK_CHAT_MODEL_ID` and `BEDROCK_EMBEDDING_MODEL_ID` in Secrets.")
         max_fetch = st.slider("Headlines per refresh", 5, 50, 20)
 
         if pending_total > 0:
@@ -388,39 +446,73 @@ def main() -> None:
             if pending_total == 0:
                 st.info("Nothing pending.")
             else:
-                with st.spinner(f"Summarizing up to {batch_ai} articles…"):
-                    try:
-                        stats = _summarize_pending(conn, batch_limit=batch_ai)
-                        remaining = db.count_articles_needing_summary(conn)
-                        st.success(
-                            f"Processed {stats['processed']}: "
-                            f"{stats['live']} live, {stats['demo']} demo, {stats['failed']} failed. "
-                            f"{remaining} still pending."
-                        )
-                        for msg in stats.get("errors") or []:
-                            st.error(msg)
+                progress = st.progress(0.0, text="Starting…")
+                try:
+                    stats = _summarize_pending(
+                        conn, batch_limit=batch_ai, progress_slot=progress
+                    )
+                    remaining = db.count_articles_needing_summary(conn)
+                    _persist_summarize_feedback(stats, remaining)
+                    progress.empty()
+                    if int(stats.get("live") or 0) + int(stats.get("demo") or 0) > 0:
                         st.rerun()
-                    except Exception as exc:  # noqa: BLE001
-                        st.error(str(exc))
+                except Exception as exc:  # noqa: BLE001
+                    progress.empty()
+                    st.error(str(exc))
+
+        with st.expander("Bedrock diagnostics", expanded=not bedrock_ok):
+            refresh_streamlit_secrets()
+            diag = bedrock_connection_diagnostics()
+            st.caption(
+                f"Region **{diag['region']}** · Chat model `{diag['chat_model']}` · "
+                f"Access key **{diag['access_key_preview']}** ({diag['access_key_set']}) · "
+                f"Secret **{diag['secret_key_set']}** · Boto3 creds **{diag['credentials_boto3']}**"
+            )
+            if diag["chat_ready"] != "yes":
+                st.warning(
+                    "Bedrock not ready. Use **top-level** keys in Secrets (not only `[sections]`), "
+                    "then **Reboot app** in Streamlit settings."
+                )
+
+        if st.button("Test Bedrock connection", use_container_width=True):
+            refresh_streamlit_secrets()
+            with st.spinner("Calling Bedrock once…"):
+                _probe, probe_err = summarizer.summarize_article_text(
+                    "Markets edge higher as tech leads rally",
+                    url="https://example.com/test",
+                    ticker_category="General",
+                )
+            if _probe:
+                st.success("Bedrock responded — summarization should work.")
+                st.caption(str(_probe.get("summary", ""))[:200])
+            else:
+                st.error(probe_err or "Bedrock call failed. Check Secrets and model access.")
+                if probe_err and "sonnet-4-6" in (config.BEDROCK_CHAT_MODEL_ID or ""):
+                    st.info(
+                        "Try `BEDROCK_CHAT_MODEL_ID = "
+                        '"us.anthropic.claude-3-5-haiku-20241022-v1:0"` in Secrets '
+                        "(must be enabled in Bedrock → Model access)."
+                    )
 
         if st.button("Summarize ALL pending", use_container_width=True):
             pending_all = db.count_articles_needing_summary(conn)
             if pending_all == 0:
                 st.info("Nothing left to summarize.")
             else:
-                with st.spinner(f"Summarizing {pending_all} articles — may take a few minutes…"):
-                    try:
-                        stats = _summarize_pending(conn, batch_limit=pending_all)
-                        remaining = db.count_articles_needing_summary(conn)
-                        st.success(
-                            f"Done: {stats['live']} live, {stats['demo']} demo, "
-                            f"{stats['failed']} failed. {remaining} still pending."
-                        )
-                        for msg in stats.get("errors") or []:
-                            st.error(msg)
-                    except Exception as exc:  # noqa: BLE001
-                        st.error(str(exc))
-                st.rerun()
+                progress = st.progress(0.0, text=f"0/{pending_all} articles…")
+                try:
+                    stats = _summarize_pending(
+                        conn, batch_limit=pending_all, progress_slot=progress
+                    )
+                    remaining = db.count_articles_needing_summary(conn)
+                    st.session_state["last_summarize_stats"] = stats
+                    _persist_summarize_feedback(stats, remaining)
+                    progress.empty()
+                    if int(stats.get("live") or 0) + int(stats.get("demo") or 0) > 0:
+                        st.rerun()
+                except Exception as exc:  # noqa: BLE001
+                    progress.empty()
+                    st.error(str(exc))
 
         with st.expander("Advanced"):
             if st.button("Clear summaries & re-run Bedrock", use_container_width=True):
@@ -483,6 +575,8 @@ def main() -> None:
         )
     ui_helpers.render_status_pills(
         bedrock=bedrock_ok,
+        bedrock_creds=has_aws_creds,
+        bedrock_settings=bedrock_settings_present(),
         pending=pending_total,
         vector_count=chroma_n,
         article_count=analytics.article_count(df),
@@ -546,7 +640,14 @@ def main() -> None:
         ui_helpers.section_header("AI summaries", "Bedrock-generated bullets, sentiment, and topics.")
         show_n = st.slider("Cards to show", 3, 30, 10, key="feed_cards_n")
         feed_rows = [row.to_dict() for _, row in filtered.head(show_n).iterrows()]
-        ui_helpers.article_feed(feed_rows, key="market_feed_cards")
+        last_stats = st.session_state.get("last_summarize_stats") or {}
+        ui_helpers.article_feed(
+            feed_rows,
+            key="market_feed_cards",
+            bedrock_configured=bedrock_ok,
+            summarize_failed=int(last_stats.get("failed") or 0) > 0
+            and int(last_stats.get("live") or 0) == 0,
+        )
 
     with tab_rag:
         _render_rag_tab(df, conn)
