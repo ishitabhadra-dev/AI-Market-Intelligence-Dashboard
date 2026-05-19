@@ -23,7 +23,7 @@ Production hosting with **no Docker** — Streamlit runs the app and serves a pu
 ```bash
 cd "/Users/ishitabhadra/Desktop/AI Market Intelligence Dashboard"
 git init   # if needed
-git add app.py src/ requirements.txt .streamlit/ frontend/build/
+git add app.py src/ requirements.txt environment.yml .python-version pyproject.toml .streamlit/ frontend/build/
 git add STREAMLIT_CLOUD.md README.md
 git commit -m "Streamlit Cloud deploy"
 git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
@@ -39,7 +39,11 @@ Do **not** commit `.env` (secrets stay in Streamlit UI).
 1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
 2. Click **Create app**.
 3. Choose your repository, branch `main`, main file **`app.py`**.
-4. Python **3.11** is set via `.python-version` in the repo (required for ChromaDB).
+4. Python **3.11** is required (ChromaDB fails on 3.14). The repo includes:
+   - `environment.yml` (conda → **Python 3.11.9**) — primary fix for Cloud
+   - `.python-version` with `3.11`
+
+   **If the app was already deployed on 3.14:** delete the app on Streamlit Cloud and create it again (you cannot change Python version after deploy). On the deploy screen, open **Advanced settings** and pick **3.11**.
 
 ---
 
@@ -106,7 +110,8 @@ For durable data long-term, use AWS (RDS, OpenSearch) in a later phase.
 | Issue | Fix |
 |-------|-----|
 | `Unable to locate package` in logs | Remove `packages.txt` or leave it **empty** (no `#` comments) |
-| `Descriptors cannot be created` / protobuf | Use `.python-version` = `3.11` and pinned `requirements.txt` (push latest) |
+| `Descriptors cannot be created` / protobuf | Push `environment.yml` + redeploy on **Python 3.11** |
+| `Python 3.14` / `tokenizers` / `pyo3` build fail | Delete app → redeploy with **3.11**; ensure `environment.yml` is on `main` |
 | App crashes on start | Check **Logs** in Streamlit Cloud; verify `requirements.txt` |
 | React UI missing / fallback widgets | Commit `frontend/build/` to GitHub |
 | Bedrock `AccessDenied` | IAM policy + correct model IDs in Secrets |

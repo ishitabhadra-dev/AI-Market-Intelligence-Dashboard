@@ -1,0 +1,11 @@
+# Streamlit Community Cloud: conda env pins Python 3.11 (avoids 3.14 + ChromaDB build failures).
+# See https://docs.streamlit.io/streamlit-community-cloud/deploy-your-app/app-dependencies
+name: ai-market-intelligence
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.9
+  - pip
+  - pip:
+      - -r requirements.txt
