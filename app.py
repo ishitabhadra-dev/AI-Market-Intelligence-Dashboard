@@ -26,6 +26,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+from src import config
 from src.config import is_streamlit_cloud, refresh_streamlit_secrets
 
 refresh_streamlit_secrets()
