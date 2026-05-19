@@ -1,0 +1,31 @@
+# Local / single-server production-style run with persistent data.
+# Usage: cp .env.example .env  (fill in AWS + optional news keys)
+#        docker compose up --build
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-market-intelligence:latest
+    container_name: ai-market-dashboard
+    ports:
+      - "${PORT:-8501}:8501"
+    env_file:
+      - .env
+    environment:
+      DEPLOY_ENV: production
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    volumes:
+      # Persist SQLite + ChromaDB across restarts
+      - market-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  market-data:

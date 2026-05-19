@@ -24,7 +24,7 @@ Production hosting with **no Docker** — Streamlit runs the app and serves a pu
 cd "/Users/ishitabhadra/Desktop/AI Market Intelligence Dashboard"
 git init   # if needed
 git add app.py src/ requirements.txt .streamlit/ frontend/build/
-git add packages.txt STREAMLIT_CLOUD.md README.md
+git add STREAMLIT_CLOUD.md README.md
 git commit -m "Streamlit Cloud deploy"
 git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
 git push -u origin main
@@ -105,6 +105,7 @@ For durable data long-term, use AWS (RDS, OpenSearch) in a later phase.
 
 | Issue | Fix |
 |-------|-----|
+| `Unable to locate package` in logs | Remove `packages.txt` or leave it **empty** (no `#` comments) |
 | App crashes on start | Check **Logs** in Streamlit Cloud; verify `requirements.txt` |
 | React UI missing / fallback widgets | Commit `frontend/build/` to GitHub |
 | Bedrock `AccessDenied` | IAM policy + correct model IDs in Secrets |

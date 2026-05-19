@@ -1,0 +1,18 @@
+[Unit]
+Description=AI Market Intelligence Dashboard (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ai-market-intelligence
+Environment=DEPLOY_ENV=production
+Environment=PORT=8501
+EnvironmentFile=-/opt/ai-market-intelligence/.env
+ExecStart=/opt/ai-market-intelligence/scripts/run_production_streamlit.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,2 +1,0 @@
-# System packages for Streamlit Community Cloud (apt).
-# ChromaDB and Bedrock work with the default Python image — leave empty unless you add OS deps.

@@ -1,0 +1,33 @@
+# Deploy to Render.com (no local Docker): connect GitHub repo in Render dashboard.
+# Docs: https://render.com/docs/deploy-streamlit
+
+services:
+  - type: web
+    name: ai-market-intelligence
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      cd frontend && npm ci && npm run build
+    startCommand: >
+      streamlit run app.py
+      --server.port=$PORT
+      --server.address=0.0.0.0
+      --server.headless=true
+      --browser.gatherUsageStats=false
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: DEPLOY_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: BEDROCK_CHAT_MODEL_ID
+        sync: false
+      - key: BEDROCK_EMBEDDING_MODEL_ID
+        value: amazon.titan-embed-text-v2:0
